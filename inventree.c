@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#define ERR(msg) fprintf(stderr, msg "\n")
+
 enum operation { NONE, ADD, REMOVE, FIND, LIST, HISTORY };
 
 struct item {
@@ -41,6 +43,20 @@ inv_get(char *file, size_t *r_len)
 	return (struct item *) buf;
 }
 
+bool
+inv_set(char *file, struct item *items, size_t len)
+{
+	FILE *fp = fopen(file, "wb");
+	if (fp == NULL)
+		return false;
+
+	size_t bz = len * sizeof(struct item);
+	size_t wr = fwrite((char *) items, 1, bz, fp);
+	fclose(fp);
+
+	return bz == wr;
+}
+
 enum argstate { NORM, ARGP_FILE, ARGP_COUNT };
 #define ARG_IS(lit, slit) (!strcmp(arg, lit) || !strcmp(arg, slit))
 int
@@ -56,8 +72,8 @@ main(int argc, char **argv)
 
 	enum argstate state = NORM;
 	if (argc == 1) {
-		fprintf(stderr, "usage: inventree -I filename [options]\n");
-		fprintf(stderr, "check manpage for more info.\n");
+		ERR("usage: inventree -I filename [options]");
+		ERR("check manpage for more info.");
 		return -1;
 	}
 
@@ -101,8 +117,15 @@ main(int argc, char **argv)
 	/* inv manage */
 	size_t len;
 	struct item *items = inv_get(file, &len);
+	if (items == NULL) {
+		ERR("could not open file");
+		return -1;
+	}
 
-	inv_set(file, items);
+	if (!inv_set(file, items, len)) {
+		ERR("could not write file");
+		return -1;
+	}
 	free(items);
 
 	return 0;
