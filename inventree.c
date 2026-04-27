@@ -83,10 +83,10 @@ inv_add(struct item **items, size_t *i_len, struct item it)
 void
 inv_list(struct item *items, size_t len)
 {
-	printf("NAME\tCOUNT\tLINK\n");
+	printf("NAME\tDESC\tCOUNT\tLINK\n");
 	for (size_t i = 0; i < len; ++i) {
 		struct item it = items[i];
-		printf("%s\t%d\t%s\n", it.name, it.count, it.url);
+		printf("%s\t%s\t%d\t%s\n", it.name, it.desc, it.count, it.url);
 	}
 }
 
