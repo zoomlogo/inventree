@@ -57,7 +57,39 @@ inv_set(char *file, struct item *items, size_t len)
 	return bz == wr;
 }
 
-enum argstate { NORM, ARGP_FILE, ARGP_COUNT };
+bool
+inv_add(struct item **items, size_t *i_len, struct item it)
+{
+	/* first search for existing item */
+	char *nm = it.name;
+	for (struct item *i = *items; i < *items + *i_len; ++i) {
+		if (strcmp(i->name, nm) == 0) {
+			i->count++;
+			return true;
+		}
+	}
+
+	struct item *np = realloc(*items, (*i_len + 1) * sizeof(struct item));
+	if (np == NULL)
+		return false;
+
+	np[*i_len] = it;
+	*i_len += 1;
+	*items = np;
+	return true;
+}
+
+void
+inv_list(struct item *items, size_t len)
+{
+	printf("NAME\tCOUNT\tLINK\n");
+	for (size_t i = 0; i < len; ++i) {
+		struct item it = items[i];
+		printf("%s\t%d\t%s\n", it.name, it.count, it.url);
+	}
+}
+
+enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_ADD_NM, ARGP_URL };
 #define ARG_IS(lit, slit) (!strcmp(arg, lit) || !strcmp(arg, slit))
 int
 main(int argc, char **argv)
@@ -66,6 +98,8 @@ main(int argc, char **argv)
 	char *file = NULL;
 	enum operation op = NONE;
 	int count = 1;
+	char *name = NULL;
+	char *url = NULL;
 	bool all = false;
 	bool person = false;
 	bool item = false;
@@ -82,9 +116,10 @@ main(int argc, char **argv)
 		char *arg = argv[i];
 		switch (state) {
 		case NORM:
-			if (ARG_IS("-A", "-add"))
+			if (ARG_IS("-A", "-add")) {
 				op = ADD;
-			else if (ARG_IS("-R", "-remove"))
+				state = ARGP_ADD_NM;
+			} else if (ARG_IS("-R", "-remove"))
 				op = REMOVE;
 			else if (ARG_IS("-F", "-find"))
 				op = FIND;
@@ -96,6 +131,8 @@ main(int argc, char **argv)
 				state = ARGP_FILE;
 			else if (ARG_IS("-n", "-count"))
 				state = ARGP_COUNT;
+			else if (ARG_IS("-l", "-link"))
+				state = ARGP_URL;
 			else if (ARG_IS("-a", "-all"))
 				all = true;
 			else if (ARG_IS("-p", "-person"))
@@ -105,13 +142,24 @@ main(int argc, char **argv)
 			break;
 		case ARGP_FILE:
 			file = arg;
+			state = NORM;
 			break;
 		case ARGP_COUNT:
 			count = atoi(arg);
+			state = NORM;
+			break;
+		case ARGP_ADD_NM:
+			name = arg;
+			state = NORM;
+			break;
 		}
 	}
 
 	/* arg errors */
+	if (file == NULL) {
+		ERR("please provide filename");
+		return -1;
+	}
 
 
 	/* inv manage */
@@ -122,11 +170,36 @@ main(int argc, char **argv)
 		return -1;
 	}
 
+	switch (op) {
+	case ADD:
+		if (name == NULL) {
+			ERR("provide name for item");
+			return -1;
+		}
+
+		struct item it = { .count = count };
+		strcpy(it.name, name);
+		if (url != NULL)
+			strcpy(it.url, url);
+		if (!inv_add(&items, &len, it)) {
+			ERR("could not add item");
+			return -1;
+		}
+		break;
+	case LIST:
+		inv_list(items, len);
+		break;
+	default:
+		break;
+	}
+
 	if (!inv_set(file, items, len)) {
 		ERR("could not write file");
 		return -1;
 	}
 	free(items);
+
+	/* TODO add git commit here */
 
 	return 0;
 }
