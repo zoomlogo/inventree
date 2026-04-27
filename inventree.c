@@ -6,10 +6,11 @@
 
 #define ERR(msg) fprintf(stderr, msg "\n")
 
-enum operation { NONE, ADD, REMOVE, FIND, LIST, HISTORY };
+enum operation { NONE, ADD, REMOVE, FIND, UPDATE, LIST, HISTORY };
 
 struct item {
-	char name[128];
+	char name[64];
+	char desc[256];
 	int count;
 
 	int len;
@@ -89,7 +90,7 @@ inv_list(struct item *items, size_t len)
 	}
 }
 
-enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_ADD_NM, ARGP_URL };
+enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_NM, ARGP_URL, ARGP_DESC };
 #define ARG_IS(lit, slit) (!strcmp(arg, lit) || !strcmp(arg, slit))
 int
 main(int argc, char **argv)
@@ -100,9 +101,7 @@ main(int argc, char **argv)
 	int count = 1;
 	char *name = NULL;
 	char *url = NULL;
-	bool all = false;
-	bool person = false;
-	bool item = false;
+	char *desc = NULL;
 
 	enum argstate state = NORM;
 	if (argc == 1) {
@@ -118,7 +117,7 @@ main(int argc, char **argv)
 		case NORM:
 			if (ARG_IS("-A", "-add")) {
 				op = ADD;
-				state = ARGP_ADD_NM;
+				state = ARGP_NM;
 			} else if (ARG_IS("-R", "-remove"))
 				op = REMOVE;
 			else if (ARG_IS("-F", "-find"))
@@ -127,18 +126,17 @@ main(int argc, char **argv)
 				op = HISTORY;
 			else if (ARG_IS("-L", "-list"))
 				op = LIST;
-			else if (ARG_IS("-I", "-inventory"))
+			else if (ARG_IS("-U", "-update")) {
+				op = UPDATE;
+				state = ARGP_NM;
+			} else if (ARG_IS("-I", "-inventory"))
 				state = ARGP_FILE;
 			else if (ARG_IS("-n", "-count"))
 				state = ARGP_COUNT;
 			else if (ARG_IS("-l", "-link"))
 				state = ARGP_URL;
-			else if (ARG_IS("-a", "-all"))
-				all = true;
-			else if (ARG_IS("-p", "-person"))
-				person = true;
-			else if (ARG_IS("-i", "-item"))
-				item = true;
+			else if (ARG_IS("-d", "-desc"))
+				state = ARGP_DESC;
 			break;
 		case ARGP_FILE:
 			file = arg;
@@ -148,8 +146,16 @@ main(int argc, char **argv)
 			count = atoi(arg);
 			state = NORM;
 			break;
-		case ARGP_ADD_NM:
+		case ARGP_NM:
 			name = arg;
+			state = NORM;
+			break;
+		case ARGP_DESC:
+			desc = arg;
+			state = NORM;
+			break;
+		case ARGP_URL:
+			url = arg;
 			state = NORM;
 			break;
 		}
@@ -181,6 +187,8 @@ main(int argc, char **argv)
 		strcpy(it.name, name);
 		if (url != NULL)
 			strcpy(it.url, url);
+		if (desc != NULL)
+			strcpy(it.desc, desc);
 		if (!inv_add(&items, &len, it)) {
 			ERR("could not add item");
 			return -1;
