@@ -1,0 +1,11 @@
+inventree
+=================
+this is a bad inventory manager written in about 4 hours.
+this sucks and no one should use it.
+
+installation
+================
+edit config.mk to match your local setup then run (if
+required as root):
+
+    make clean install

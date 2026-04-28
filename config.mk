@@ -1,5 +1,5 @@
 # inventree version
-VERSION = 0.0.1
+VERSION = 0.1.0
 
 # Customize below to fit your system
 
