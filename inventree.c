@@ -6,7 +6,7 @@
 
 #define ERR(msg) fprintf(stderr, msg "\n")
 
-enum operation { NONE, ADD, REMOVE, UPDATE, FIND, LIST, HISTORY };
+enum operation { NONE, ADD, REMOVE, UPDATE, FIND, LIST };
 
 #define SZ_NAME   64
 #define SZ_DESC   256
@@ -225,8 +225,6 @@ main(int argc, char **argv)
 				state = ARGP_NM;
 			} else if (ARG_IS("-F", "-find"))
 				op = FIND;
-			else if (ARG_IS("-H", "-history"))
-				op = HISTORY;
 			else if (ARG_IS("-L", "-list"))
 				op = LIST;
 			else if (ARG_IS("-I", "-inventory"))
@@ -352,9 +350,6 @@ main(int argc, char **argv)
 	case LIST:
 		inv_list(items, len);
 		break;
-
-	case HISTORY:  /* TODO git integration */
-		break;
 	}
 
 	if (!inv_set(file, items, len)) {
@@ -362,8 +357,6 @@ main(int argc, char **argv)
 		return -1;
 	}
 	free(items);
-
-	/* TODO git integration */
 
 	return 0;
 }
