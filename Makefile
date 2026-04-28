@@ -30,10 +30,10 @@ install: inventree
 	chmod 755 $(PREFIX)/bin/inventree
 	mkdir -p $(MANPREFIX)/man1
 	sed "s/VERSION/$(VERSION)/g" <inventree.1 >$(MANPREFIX)/man1/inventree.1
-	chmod 644 $(PREFIX)/man1/inventree.1
+	chmod 644 $(MANPREFIX)/man1/inventree.1
 
 uninstall:
 	rm -f $(PREFIX)/bin/inventree
-	rm -f $(PREFIX)/man1/inventree.1
+	rm -f $(MANPREFIX)/man1/inventree.1
 
 .PHONY: all clean dist install uninstall
