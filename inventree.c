@@ -6,16 +6,17 @@
 
 #define ERR(msg) fprintf(stderr, msg "\n")
 
-enum operation { NONE, ADD, REMOVE, FIND, UPDATE, LIST, HISTORY };
+enum operation { NONE, ADD, REMOVE, UPDATE, FIND, LIST, HISTORY };
 
+#define MAX_NAMES 16
 struct item {
 	char name[64];
 	char desc[256];
 	int count;
 
 	int len;
-	char names[16][64];
-	int counts[16];
+	char names[MAX_NAMES][64];
+	int counts[MAX_NAMES];
 
 	char url[256];
 };
@@ -80,6 +81,54 @@ inv_add(struct item **items, size_t *i_len, struct item it)
 	return true;
 }
 
+bool
+inv_update(struct item *items, size_t len, char *name,
+           char *pname, int count, bool remove, char *desc, char *url)
+{
+	struct item *it = NULL;
+	for (struct item *i = items; i < items + len; ++i) {
+		if (strcmp(i->name, name) == 0) {
+			it = i;
+			break;
+		}
+	}
+	if (it == NULL)
+		return false;
+
+	if (pname == NULL && count != 1)
+		it->count = count;
+	if (desc != NULL)
+		strcpy(it->desc, desc);
+	if (url != NULL)
+		strcpy(it->url, url);
+
+	if (pname != NULL) {
+		if (!remove) {
+			for (int i = 0; i < MAX_NAMES; ++i) {
+				if (strcmp(pname, it->names[i]) == 0) {
+					it->counts[i] += count;
+					return true;
+				}
+			}
+
+			strcpy(it->names[it->len], pname);
+			it->counts[it->len] = count;
+			it->len++;
+		} else for (int i = 0; i < MAX_NAMES; ++i) {
+			if (strcmp(pname, it->names[i]) == 0) {
+				if (i != it->len - 1) {
+					strcpy(it->names[i], it->names[it->len - 1]);
+					memcpy(&it->counts[i],
+					       &it->counts[it->len - 1], sizeof(int));
+				}
+				it->len--;
+				return true;
+			}
+		}
+	}
+	return true;
+}
+
 void
 inv_list(struct item *items, size_t len)
 {
@@ -103,6 +152,7 @@ main(int argc, char **argv)
 	char *url = NULL;
 	char *desc = NULL;
 	bool item = false;
+	bool remove = false;
 	char *pname = NULL;
 
 	enum argstate state = NORM;
@@ -144,6 +194,10 @@ main(int argc, char **argv)
 				item = true;
 			else if (ARG_IS("-p", "-person"))
 				state = ARGP_PNM;
+			else if (ARG_IS("-r", "-remove-person")) {
+				state = ARGP_PNM;
+				remove = true;
+			}
 			break;
 		case ARGP_FILE:
 			file = arg;
@@ -216,10 +270,20 @@ main(int argc, char **argv)
 				/* copy last index here and decrease len */
 				if (len > 0 && i != items + len - 1)
 					memcpy(i, &items[len - 1], sizeof(struct item));
-				if (len > 0)
-					len--;
+				len--;
 				break;
 			}
+		}
+		break;
+	case UPDATE:
+		if (name == NULL) {
+			ERR("provide name for item");
+			return -1;
+		}
+
+		if (!inv_update(items, len, name, pname, count, remove, desc, url)) {
+			ERR("failed to update inv");
+			return -1;
 		}
 		break;
 	case LIST:
