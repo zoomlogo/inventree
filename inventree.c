@@ -66,7 +66,7 @@ inv_add(struct item **items, size_t *i_len, struct item it)
 	char *nm = it.name;
 	for (struct item *i = *items; i < *items + *i_len; ++i) {
 		if (strcmp(i->name, nm) == 0) {
-			i->count++;
+			i->count += it.count;
 			return true;
 		}
 	}
