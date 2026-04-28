@@ -90,7 +90,7 @@ inv_list(struct item *items, size_t len)
 	}
 }
 
-enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_NM, ARGP_URL, ARGP_DESC };
+enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_NM, ARGP_URL, ARGP_DESC, ARGP_PNM };
 #define ARG_IS(lit, slit) (!strcmp(arg, lit) || !strcmp(arg, slit))
 int
 main(int argc, char **argv)
@@ -102,6 +102,8 @@ main(int argc, char **argv)
 	char *name = NULL;
 	char *url = NULL;
 	char *desc = NULL;
+	bool item = false;
+	char *pname = NULL;
 
 	enum argstate state = NORM;
 	if (argc == 1) {
@@ -118,18 +120,19 @@ main(int argc, char **argv)
 			if (ARG_IS("-A", "-add")) {
 				op = ADD;
 				state = ARGP_NM;
-			} else if (ARG_IS("-R", "-remove"))
+			} else if (ARG_IS("-R", "-remove")) {
 				op = REMOVE;
-			else if (ARG_IS("-F", "-find"))
+				state = ARGP_NM;
+			} else if (ARG_IS("-U", "-update")) {
+				op = UPDATE;
+				state = ARGP_NM;
+			} else if (ARG_IS("-F", "-find"))
 				op = FIND;
 			else if (ARG_IS("-H", "-history"))
 				op = HISTORY;
 			else if (ARG_IS("-L", "-list"))
 				op = LIST;
-			else if (ARG_IS("-U", "-update")) {
-				op = UPDATE;
-				state = ARGP_NM;
-			} else if (ARG_IS("-I", "-inventory"))
+			else if (ARG_IS("-I", "-inventory"))
 				state = ARGP_FILE;
 			else if (ARG_IS("-n", "-count"))
 				state = ARGP_COUNT;
@@ -137,6 +140,10 @@ main(int argc, char **argv)
 				state = ARGP_URL;
 			else if (ARG_IS("-d", "-desc"))
 				state = ARGP_DESC;
+			else if (ARG_IS("-i", "-item"))
+				item = true;
+			else if (ARG_IS("-p", "-person"))
+				state = ARGP_PNM;
 			break;
 		case ARGP_FILE:
 			file = arg;
@@ -156,6 +163,10 @@ main(int argc, char **argv)
 			break;
 		case ARGP_URL:
 			url = arg;
+			state = NORM;
+			break;
+		case ARGP_PNM:
+			pname = arg;
 			state = NORM;
 			break;
 		}
@@ -192,6 +203,23 @@ main(int argc, char **argv)
 		if (!inv_add(&items, &len, it)) {
 			ERR("could not add item");
 			return -1;
+		}
+		break;
+	case REMOVE:
+		if (name == NULL) {
+			ERR("provide name for item");
+			return -1;
+		}
+
+		for (struct item *i = items; i < items + len; ++i) {
+			if (strcmp(i->name, name) == 0) {
+				/* copy last index here and decrease len */
+				if (len > 0 && i != items + len - 1)
+					memcpy(i, &items[len - 1], sizeof(struct item));
+				if (len > 0)
+					len--;
+				break;
+			}
 		}
 		break;
 	case LIST:
