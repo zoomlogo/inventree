@@ -8,17 +8,18 @@
 
 enum operation { NONE, ADD, REMOVE, UPDATE, FIND, LIST, HISTORY };
 
+#define SZ_NAME   64
+#define SZ_DESC   256
+#define SZ_URL    256
 #define MAX_NAMES 16
 struct item {
-	char name[64];
-	char desc[256];
+	char name[SZ_NAME];
+	char desc[SZ_DESC];
 	int count;
-
 	int len;
-	char names[MAX_NAMES][64];
+	char names[MAX_NAMES][SZ_NAME];
 	int counts[MAX_NAMES];
-
-	char url[256];
+	char url[SZ_URL];
 };
 
 struct item *
@@ -139,6 +140,51 @@ inv_list(struct item *items, size_t len)
 	}
 }
 
+void
+inv_find(struct item *items, size_t len,
+         bool search_item, bool search_person, char *name, char *pname)
+{
+	bool *mask_item = calloc(len, sizeof(bool));
+	bool *mask_person = calloc(len, sizeof(bool));
+
+	if (search_item) {
+		for (size_t i = 0; i < len; ++i) {
+			if (strcmp(name, items[i].name) == 0)
+				mask_item[i] = true;
+		}
+	} else for (size_t i = 0; i < len; ++i) {
+		mask_item[i] = true;
+	}
+
+	if (search_person) {
+		for (size_t i = 0; i < len; ++i) {
+			for (size_t j = 0; j < items[i].len; ++j) {
+				if (strcmp(pname, items[i].names[j]) == 0)
+					mask_person[i] = true;
+			}
+		}
+	} else for (size_t i = 0; i < len; ++i) {
+		mask_person[i] = true;
+	}
+
+	printf("NAME\tDESC\tCOUNT\tWHO HAS\tLINK\n");
+	for (size_t i = 0; i < len; ++i) {
+		if (mask_item[i] && mask_person[i]) {
+			struct item it = items[i];
+			printf("%s\t%s\t%d\t", it.name, it.desc, it.count);
+			for (size_t j = 0; j < it.len; ++j) {
+				printf("%s:%d", it.names[j], it.counts[j]);
+				if (j < it.len - 1)
+					printf(",");
+			}
+			printf("\t%s\n", it.url);
+		}
+	}
+
+	free(mask_person);
+	free(mask_item);
+}
+
 enum argstate { NORM, ARGP_FILE, ARGP_COUNT, ARGP_NM, ARGP_URL, ARGP_DESC, ARGP_PNM };
 #define ARG_IS(lit, slit) (!strcmp(arg, lit) || !strcmp(arg, slit))
 int
@@ -151,7 +197,8 @@ main(int argc, char **argv)
 	char *name = NULL;
 	char *url = NULL;
 	char *desc = NULL;
-	bool item = false;
+	bool search_item = false;
+	bool search_person = false;
 	bool remove = false;
 	char *pname = NULL;
 
@@ -190,9 +237,13 @@ main(int argc, char **argv)
 				state = ARGP_URL;
 			else if (ARG_IS("-d", "-desc"))
 				state = ARGP_DESC;
-			else if (ARG_IS("-i", "-item"))
-				item = true;
-			else if (ARG_IS("-p", "-person"))
+			else if (ARG_IS("-i", "-search-item")) {
+				state = ARGP_NM;
+				search_item = true;
+			} else if (ARG_IS("-w", "-search-person")) {
+				state = ARGP_PNM;
+				search_person = true;
+			} else if (ARG_IS("-p", "-person"))
 				state = ARGP_PNM;
 			else if (ARG_IS("-r", "-remove-person")) {
 				state = ARGP_PNM;
@@ -247,7 +298,6 @@ main(int argc, char **argv)
 			ERR("provide name for item");
 			return -1;
 		}
-
 		struct item it = { .count = count };
 		strcpy(it.name, name);
 		if (url != NULL)
@@ -259,12 +309,12 @@ main(int argc, char **argv)
 			return -1;
 		}
 		break;
+
 	case REMOVE:
 		if (name == NULL) {
 			ERR("provide name for item");
 			return -1;
 		}
-
 		for (struct item *i = items; i < items + len; ++i) {
 			if (strcmp(i->name, name) == 0) {
 				/* copy last index here and decrease len */
@@ -275,21 +325,35 @@ main(int argc, char **argv)
 			}
 		}
 		break;
+
 	case UPDATE:
 		if (name == NULL) {
 			ERR("provide name for item");
 			return -1;
 		}
-
 		if (!inv_update(items, len, name, pname, count, remove, desc, url)) {
 			ERR("failed to update inv");
 			return -1;
 		}
 		break;
+
+	case FIND:  /* search for person OR item OR (person AND item) if given */
+		if (search_item && name == NULL) {
+			ERR("provide name for item");
+			return -1;
+		}
+		if (search_person && pname == NULL) {
+			ERR("provide name for person");
+			return -1;
+		}
+		inv_find(items, len, search_item, search_person, name, pname);
+		break;
+
 	case LIST:
 		inv_list(items, len);
 		break;
-	default:
+
+	case HISTORY:  /* TODO git integration */
 		break;
 	}
 
@@ -299,7 +363,7 @@ main(int argc, char **argv)
 	}
 	free(items);
 
-	/* TODO add git commit here */
+	/* TODO git integration */
 
 	return 0;
 }
