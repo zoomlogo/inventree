@@ -1,0 +1,80 @@
+.TH INVENTREE 1 inventree\-VERSION
+.SH NAME
+inventree \- simple inventory manager
+.SH SYNOPSIS
+.B inventree
+.RB [ \-I
+.IR inventory\-file ]
+.RI [ commands ...]
+.PP
+.SH DESCRIPTION
+.B inventree
+is a simple real-time inventory manager.
+.SH COMMANDS
+.B inventree
+can only do a single command at a time.  it is by design.
+.TP
+.B \-I " inventory\-file", \-inventory " inventory\-file"
+use
+.I inventory\-file
+as the inventory database file
+.TP
+.B \-A " item\-name", \-add " item\-name"
+adds an item with name
+.I item\-name
+to the inventory
+.TP
+.B \-R " item\-name", \-remove " item\-name"
+discards item with name
+.I item\-name
+from the inventory
+.TP
+.B \-U " item\-name", \-update " item\-name"
+updates item with name
+.I item\-name
+in the inventory
+.TP
+.B \-F, \-find
+finds items
+.TP
+.B \-L, \-list
+briefly lists all items
+.TP
+.SH ARGUMENTS
+these supply arguments to the commands above.
+.TP
+.B \-n " num", \-count " num"
+supplies the (new) number of items to add/update
+or the amount of items held by a person when using
+.B \-p, \-person
+with
+.B \-U, \-update
+.TP
+.B \-d " desc", \-desc " desc"
+supplies the (new) description of an item
+.TP
+.B \-l " link", \-link " link"
+supplies the (new) link of purchase of an item
+.TP
+.B \-i " item\-name", \-search-item " item\-name"
+when using
+.B \-F, \-find
+find item with name
+.I item\-name
+.TP
+.B \-w " person\-name", \-search-person " person\-name"
+when using
+.B \-F, \-find
+find all items held by person with name
+.I person\-name
+.TP
+.B \-p " person\-name", \-person " person\-name"
+when using
+.B \-U, \-update
+add a person holding the given item with count if specified
+.TP
+.B \-r " person\-name", \-remove-person " person\-name"
+when using
+.B \-U, \-update
+removes the person holding item entirely
+.TP
